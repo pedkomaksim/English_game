@@ -22,6 +22,30 @@
             max-width: 800px;
             margin: 0 auto;
         }
+        .settings-box {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            max-width: 400px;
+            margin: 0 auto 20px auto;
+            text-align: left;
+        }
+        .settings-box label {
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: block;
+            margin-top: 15px;
+        }
+        select, input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 1.1rem;
+            margin-top: 5px;
+            border-radius: 8px;
+            border: 2px solid #ccc;
+            box-sizing: border-box;
+        }
         .controls {
             margin: 20px 0;
         }
@@ -41,6 +65,8 @@
             padding: 15px 30px;
             font-size: 1.5rem;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
         }
         #repeat-btn {
             background-color: #ffe66d;
@@ -74,9 +100,9 @@
             animation: shake 0.5s;
         }
         #message {
-            font-size: 2rem;
+            font-size: 1.5rem;
             margin-top: 20px;
-            height: 40px;
+            height: 60px;
             font-weight: bold;
         }
         .stats-box {
@@ -102,13 +128,30 @@
     <h1>Вчимо слова! 🎓</h1>
     
     <div id="start-screen">
-        <p style="font-size: 1.2rem;">Натисніть кнопку, щоб почати. Слухайте слово і обирайте правильну картинку!</p>
+        <p style="font-size: 1.2rem;">Налаштуйте гру перед стартом:</p>
+        
+        <div class="settings-box">
+            <p style="margin-top: 0;">📚 Всього слів у базі: <strong id="total-dict-words">0</strong></p>
+            
+            <label for="difficulty">Складність:</label>
+            <select id="difficulty" onchange="updateSettings()">
+                <option value="all">Всі слова</option>
+                <option value="easy">Легкі (Тварини, їжа, предмети)</option>
+                <option value="medium">Середні (Транспорт, природа)</option>
+                <option value="hard">Складні (Довгі слова)</option>
+            </select>
+
+            <label for="word-count">Скільки слів грати?</label>
+            <small style="display:block; color:#666;">Доступно в категорії: <span id="available-category-words">0</span></small>
+            <input type="number" id="word-count" value="10" min="1" max="10">
+        </div>
+
         <button class="primary-btn" onclick="startGame()">Почати гру ▶️</button>
     </div>
 
     <div id="game-area">
         <div class="controls">
-            <p style="font-size: 1.2rem; margin-bottom: 10px;">Слово <span id="word-counter">1</span> з <span id="total-words">10</span></p>
+            <p style="font-size: 1.2rem; margin-bottom: 10px;">Слово <span id="word-counter">1</span> з <span id="total-words-game">10</span></p>
             <button id="repeat-btn" onclick="speakCurrentWord(true)">🔊 Повторити слово</button>
         </div>
         <div class="grid" id="cards-grid"></div>
@@ -122,105 +165,139 @@
             <p>❌ Помилок зроблено: <strong id="stat-wrong" style="color:#f44336;">0</strong></p>
             <p>🔄 Повторів слова (підказок): <strong id="stat-repeats" style="color:#ffb300;">0</strong></p>
         </div>
-        <button class="primary-btn" onclick="startGame()">Грати ще раз 🔄</button>
+        <button class="primary-btn" onclick="resetToMenu()">В головне меню 🏠</button>
     </div>
 
     <script>
+        // Словник із доданою складністю (diff: easy, medium, hard)
         const dictionary = [
-            { en: "ALLIGATOR", ua: "КРОКОДИЛ", icon: "🐊" },
-            { en: "AX", ua: "СОКИРА", icon: "🪓" },
-            { en: "ANT", ua: "МУРАХА", icon: "🐜" },
-            { en: "APPLE", ua: "ЯБЛУКО", icon: "🍎" },
-            { en: "BEAR", ua: "ВЕДМІДЬ", icon: "🐻" },
-            { en: "BOAT", ua: "ЧОВЕН", icon: "⛵" },
-            { en: "BIKE", ua: "ВЕЛОСИПЕД", icon: "🚲" },
-            { en: "BUS", ua: "АВТОБУС", icon: "🚌" },
-            { en: "BOOK", ua: "КНИГА", icon: "📖" },
-            { en: "BAG", ua: "ПОРТФЕЛЬ", icon: "🎒" },
-            { en: "BALL", ua: "МʼЯЧ", icon: "⚽" },
-            { en: "CAT", ua: "КІТ", icon: "🐈" },
-            { en: "COW", ua: "КОРОВА", icon: "🐄" },
-            { en: "CAR", ua: "МАШИНА", icon: "🚗" },
-            { en: "CHERRY", ua: "ВИШНЯ", icon: "🍒" },
-            { en: "CAKE", ua: "ТОРТ", icon: "🎂" },
-            { en: "DOG", ua: "СОБАКА", icon: "🐕" },
-            { en: "DUCK", ua: "КАЧКА", icon: "🦆" },
-            { en: "DEER", ua: "ОЛЕНЬ", icon: "🦌" },
-            { en: "DOLL", ua: "ЛЯЛЬКА", icon: "🪆" },
-            { en: "BIRTHDAY PRESENT", ua: "ПОДАРУНОК", icon: "🎁" },
-            { en: "BALLOON", ua: "КУЛЬКА", icon: "🎈" },
-            { en: "STAR", ua: "ЗІРКА", icon: "⭐" },
-            { en: "CANDLE", ua: "СВІЧКА", icon: "🕯️" },
-            { en: "EGG", ua: "ЯЙЦЕ", icon: "🥚" }
-            // Можете додати решту вашого словника сюди
+            { en: "CAT", ua: "КІТ", icon: "🐈", diff: "easy" },
+            { en: "DOG", ua: "СОБАКА", icon: "🐕", diff: "easy" },
+            { en: "COW", ua: "КОРОВА", icon: "🐄", diff: "easy" },
+            { en: "PIG", ua: "СВИНЯ", icon: "🐷", diff: "easy" },
+            { en: "FOX", ua: "ЛИСИЦЯ", icon: "🦊", diff: "easy" },
+            { en: "APPLE", ua: "ЯБЛУКО", icon: "🍎", diff: "easy" },
+            { en: "MILK", ua: "МОЛОКО", icon: "🥛", diff: "easy" },
+            { en: "BALL", ua: "МʼЯЧ", icon: "⚽", diff: "easy" },
+            { en: "CAR", ua: "МАШИНА", icon: "🚗", diff: "easy" },
+            { en: "EGG", ua: "ЯЙЦЕ", icon: "🥚", diff: "easy" },
+            
+            { en: "BEAR", ua: "ВЕДМІДЬ", icon: "🐻", diff: "medium" },
+            { en: "DUCK", ua: "КАЧКА", icon: "🦆", diff: "medium" },
+            { en: "FROG", ua: "ЖАБА", icon: "🐸", diff: "medium" },
+            { en: "BOAT", ua: "ЧОВЕН", icon: "⛵", diff: "medium" },
+            { en: "BIKE", ua: "ВЕЛОСИПЕД", icon: "🚲", diff: "medium" },
+            { en: "BUS", ua: "АВТОБУС", icon: "🚌", diff: "medium" },
+            { en: "BOOK", ua: "КНИГА", icon: "📖", diff: "medium" },
+            { en: "STAR", ua: "ЗІРКА", icon: "⭐", diff: "medium" },
+            { en: "MOON", ua: "МІСЯЦЬ", icon: "🌙", diff: "medium" },
+            { en: "CHEESE", ua: "СИР", icon: "🧀", diff: "medium" },
+            
+            { en: "ALLIGATOR", ua: "КРОКОДИЛ", icon: "🐊", diff: "hard" },
+            { en: "ELEPHANT", ua: "СЛОН", icon: "🐘", diff: "hard" },
+            { en: "KANGAROO", ua: "КЕНГУРУ", icon: "🦘", diff: "hard" },
+            { en: "JELLYFISH", ua: "МЕДУЗА", icon: "🪼", diff: "hard" },
+            { en: "EGGPLANT", ua: "БАКЛАЖАН", icon: "🍆", diff: "hard" },
+            { en: "MUSHROOM", ua: "ГРИБИ", icon: "🍄", diff: "hard" },
+            { en: "BIRTHDAY PRESENT", ua: "ПОДАРУНОК", icon: "🎁", diff: "hard" },
+            { en: "ENVELOPE", ua: "ЛИСТ", icon: "✉️", diff: "hard" },
+            { en: "UMBRELLA", ua: "ПАРАСОЛЬКА", icon: "☔", diff: "hard" },
+            { en: "SANDWICH", ua: "БУТЕРБРОД", icon: "🥪", diff: "hard" }
         ];
 
-        const WORDS_PER_GAME = 50; // Скільки слів буде в одній грі
         let gameQueue = [];
         let currentTargetWord = null;
         let isWaiting = false;
+        let wordsToPlay = 10;
         
-        // Змінні для статистики
         let stats = { correct: 0, wrong: 0, repeats: 0 };
         let currentWordAttempts = 0;
 
+        // Ініціалізація меню
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('total-dict-words').textContent = dictionary.length;
+            updateSettings();
+        });
+
+        // Оновлення доступної кількості слів при зміні складності
+        function updateSettings() {
+            const diff = document.getElementById('difficulty').value;
+            let availableWords = dictionary.length;
+            
+            if (diff !== 'all') {
+                availableWords = dictionary.filter(w => w.diff === diff).length;
+            }
+
+            document.getElementById('available-category-words').textContent = availableWords;
+            
+            const countInput = document.getElementById('word-count');
+            countInput.max = availableWords;
+            
+            // Якщо вибрано більше слів, ніж є в категорії - зменшуємо
+            if (parseInt(countInput.value) > availableWords) {
+                countInput.value = availableWords;
+            }
+        }
+
         function startGame() {
-            // Ховаємо зайві екрани
+            const diff = document.getElementById('difficulty').value;
+            wordsToPlay = parseInt(document.getElementById('word-count').value);
+
+            // Фільтруємо словник за складністю
+            let filteredDict = dictionary;
+            if (diff !== 'all') {
+                filteredDict = dictionary.filter(w => w.diff === diff);
+            }
+
+            // Перемішуємо і беремо потрібну кількість
+            filteredDict = filteredDict.sort(() => Math.random() - 0.5);
+            gameQueue = filteredDict.slice(0, wordsToPlay);
+
             document.getElementById('start-screen').style.display = 'none';
             document.getElementById('stats-screen').style.display = 'none';
             document.getElementById('game-area').style.display = 'block';
             
-            // Скидаємо статистику
             stats = { correct: 0, wrong: 0, repeats: 0 };
-            document.getElementById('total-words').textContent = WORDS_PER_GAME;
-
-            // Перемішуємо словник і беремо потрібну кількість слів для гри
-            let shuffledDict = [...dictionary].sort(() => Math.random() - 0.5);
-            gameQueue = shuffledDict.slice(0, WORDS_PER_GAME);
+            document.getElementById('total-words-game').textContent = wordsToPlay;
 
             nextRound();
         }
 
-        // Функція для озвучування з вибором мови
+        function resetToMenu() {
+            document.getElementById('stats-screen').style.display = 'none';
+            document.getElementById('start-screen').style.display = 'block';
+        }
+
         function speak(text, lang = 'en-US') {
-            window.speechSynthesis.cancel(); // Зупиняємо попередні фрази, якщо були
+            window.speechSynthesis.cancel(); 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = lang; 
             utterance.rate = 0.5; 
             window.speechSynthesis.speak(utterance);
         }
 
-        // Озвучити поточне слово (англійською)
         function speakCurrentWord(isUserClick = false) {
             if (currentTargetWord) {
                 speak(currentTargetWord.en, 'en-US');
-                // Якщо користувач сам натиснув кнопку, записуємо це в статистику
-                if (isUserClick) {
-                    stats.repeats++;
-                }
+                if (isUserClick) stats.repeats++;
             }
         }
 
         function nextRound() {
-            // Перевіряємо, чи є ще слова в черзі
             if (gameQueue.length === 0) {
                 showStats();
                 return;
             }
 
             isWaiting = false;
-            currentWordAttempts = 0; // Скидаємо спроби для нового слова
+            currentWordAttempts = 0; 
             
-            // Оновлюємо лічильник раундів
-            document.getElementById('word-counter').textContent = (WORDS_PER_GAME - gameQueue.length) + 1;
-
-            document.getElementById('message').textContent = "";
-            document.getElementById('message').style.color = "#333";
+            document.getElementById('word-counter').textContent = (wordsToPlay - gameQueue.length) + 1;
+            document.getElementById('message').innerHTML = ""; // Очищаємо текст
             
-            // Беремо наступне слово з черги (воно видаляється з черги)
             currentTargetWord = gameQueue.pop();
 
-            // Створюємо варіанти відповідей
+            // Варіанти відповідей (завжди беремо з усього словника, щоб було 4 картинки)
             let options = [currentTargetWord];
             while (options.length < 4) {
                 const randomItem = dictionary[Math.floor(Math.random() * dictionary.length)];
@@ -229,7 +306,6 @@
                 }
             }
 
-            // Перемішуємо картки на екрані
             options.sort(() => Math.random() - 0.5);
 
             const grid = document.getElementById('cards-grid');
@@ -243,7 +319,6 @@
                 grid.appendChild(btn);
             });
 
-            // Автоматично озвучуємо слово на початку раунду (не вважається підказкою)
             setTimeout(() => speakCurrentWord(false), 500);
         }
 
@@ -254,30 +329,22 @@
 
             if (selectedOption.en === currentTargetWord.en) {
                 buttonElement.classList.add('correct');
-                messageEl.textContent = `Правильно! Це ${currentTargetWord.ua} (${currentTargetWord.en})`;
+                // Виводимо текст, але БЕЗ озвучки
+                messageEl.innerHTML = `🎉 Молодець! Так тримати!<br>Це ${currentTargetWord.ua} (${currentTargetWord.en})`;
                 messageEl.style.color = "#4caf50";
                 isWaiting = true;
                 
-                // Якщо вгадав без помилок (з першої спроби)
-                if (currentWordAttempts === 0) {
-                    stats.correct++;
-                }
-                
-                // Озвучка: Молодець, так тримати! (Українською)
-                speak("Молодець! Так тримати!", "uk-UA");
+                if (currentWordAttempts === 0) stats.correct++;
                 
                 setTimeout(nextRound, 2500);
             } else {
                 buttonElement.classList.add('wrong');
-                messageEl.textContent = "Спробуй ще раз! 😉";
+                // Виводимо текст помилки БЕЗ озвучки
+                messageEl.innerHTML = `🎺 <em>НЕ ВІРНО...</em><br>Спробуй ще раз! 😉`;
                 messageEl.style.color = "#f44336";
                 
-                // Зараховуємо помилку
                 currentWordAttempts++;
                 stats.wrong++;
-                
-                // Озвучка: Сумний тромбон голосом робота (Українською)
-                speak("Не вірно... ", "uk-UA");
                 
                 setTimeout(() => {
                     buttonElement.classList.remove('wrong');
@@ -292,8 +359,6 @@
             document.getElementById('stat-correct').textContent = stats.correct;
             document.getElementById('stat-wrong').textContent = stats.wrong;
             document.getElementById('stat-repeats').textContent = stats.repeats;
-            
-            speak("Гру завершено! Ось твої результати.", "uk-UA");
         }
     </script>
 </body>
