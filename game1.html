@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вчимо англійські слова</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', 'Arial Rounded MT Bold', Arial, sans-serif;
+            background-color: #f0f8ff;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        h1 {
+            color: #ff6b6b;
+            font-size: 2.5rem;
+        }
+        #game-area {
+            display: none;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            font-family: inherit;
+            cursor: pointer;
+            border: none;
+            border-radius: 15px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        #start-btn, #repeat-btn {
+            background-color: #4ecdc4;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        #repeat-btn {
+            background-color: #ffe66d;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .card {
+            background: white;
+            font-size: 5rem;
+            padding: 30px 10px;
+            border-radius: 20px;
+            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card.correct {
+            background-color: #c8e6c9;
+            box-shadow: 0 0 20px #4caf50;
+        }
+        .card.wrong {
+            background-color: #ffcdd2;
+            animation: shake 0.5s;
+        }
+        #message {
+            font-size: 2rem;
+            margin-top: 20px;
+            height: 40px;
+            font-weight: bold;
+        }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            50% { transform: translateX(10px); }
+            75% { transform: translateX(-10px); }
+            100% { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Вчимо слова! 🎓</h1>
+    
+    <div id="start-screen">
+        <p style="font-size: 1.2rem;">Натисніть кнопку, щоб почати. Слухайте слово і обирайте правильну картинку!</p>
+        <button id="start-btn" onclick="startGame()">Почати гру ▶️</button>
+    </div>
+
+    <div id="game-area">
+        <div class="controls">
+            <button id="repeat-btn" onclick="speakCurrentWord()">🔊 Повторити слово</button>
+        </div>
+        <div class="grid" id="cards-grid"></div>
+        <div id="message"></div>
+    </div>
+
+    <script>
+        // ОНОВЛЕНИЙ СЛОВНИК
+        const dictionary = [
+            { en: "ALLIGATOR", ua: "КРОКОДИЛ", icon: "🐊" },
+            { en: "AX", ua: "СОКИРА", icon: "🪓" },
+            { en: "ANT", ua: "МУРАХА", icon: "🐜" },
+            { en: "APPLE", ua: "ЯБЛУКО", icon: "🍎" },
+            { en: "BEAR", ua: "ВЕДМІДЬ", icon: "🐻" },
+            { en: "BOAT", ua: "ЧОВЕН", icon: "⛵" },
+            { en: "BIKE", ua: "ВЕЛОСИПЕД", icon: "🚲" },
+            { en: "BUS", ua: "АВТОБУС", icon: "🚌" },
+            { en: "BOOK", ua: "КНИГА", icon: "📖" },
+            { en: "BAG", ua: "ПОРТФЕЛЬ", icon: "🎒" },
+            { en: "BALL", ua: "МʼЯЧ", icon: "⚽" },
+            { en: "CAT", ua: "КІТ", icon: "🐈" },
+            { en: "COW", ua: "КОРОВА", icon: "🐄" },
+            { en: "CAR", ua: "МАШИНА", icon: "🚗" },
+            { en: "CHERRY", ua: "ВИШНЯ", icon: "🍒" },
+            { en: "CAKE", ua: "ТОРТ", icon: "🎂" },
+            { en: "DOG", ua: "СОБАКА", icon: "🐕" },
+            { en: "DUCK", ua: "КАЧКА", icon: "🦆" },
+            { en: "DEER", ua: "ОЛЕНЬ", icon: "🦌" },
+            { en: "DOLL", ua: "ЛЯЛЬКА", icon: "🪆" },
+            { en: "BIRTHDAY PRESENT", ua: "ПОДАРУНОК ДО ДНЯ НАРОДЖЕННЯ", icon: "🎁" },
+            { en: "BALLOON", ua: "ПОВІТРЯНА КУЛЬКА", icon: "🎈" },
+            { en: "STAR", ua: "ЗІРКА", icon: "⭐" },
+            { en: "CANDLE", ua: "СВІЧКА", icon: "🕯️" },
+            { en: "EGG", ua: "ЯЙЦЕ", icon: "🥚" },
+            { en: "ELF", ua: "ЕЛЬФ", icon: "🧝" },
+            { en: "ELK", ua: "ЛОСЬ", icon: "🫎" },
+            { en: "ELEPHANT", ua: "СЛОН", icon: "🐘" },
+            { en: "EAGLE", ua: "ОРЕЛ", icon: "🦅" },
+            { en: "EAR", ua: "ВУХО", icon: "👂" },
+            { en: "EGGPLANT", ua: "БАКЛАЖАН", icon: "🍆" },
+            { en: "EARTH", ua: "ЗЕМЛЯ", icon: "🌍" },
+            { en: "ENVELOPE", ua: "ЛИСТ", icon: "✉️" },
+            { en: "FOX", ua: "ЛИСИЦЯ", icon: "🦊" },
+            { en: "FIVE", ua: "П’ЯТЬ", icon: "5️⃣" },
+            { en: "FISH", ua: "РИБА", icon: "🐟" },
+            { en: "FROG", ua: "ЖАБА", icon: "🐸" },
+            { en: "FAN", ua: "ВІЯЛО", icon: "🪭" },
+            { en: "GOAT", ua: "КОЗА", icon: "🐐" },
+            { en: "GUM", ua: "ЖУЙКА", icon: "🍬" },
+            { en: "GOOSE", ua: "ГУСАК", icon: "🪿" },
+            { en: "GORILLA", ua: "ГОРИЛА", icon: "🦍" },
+            { en: "GIRAFFE", ua: "ЖИРАФ", icon: "🦒" },
+            { en: "GIRL", ua: "ДІВЧИНКА", icon: "👧" },
+            { en: "HEN", ua: "КУРКА", icon: "🐔" },
+            { en: "HAT", ua: "ШЛЯПА", icon: "🎩" },
+            { en: "HIPPO", ua: "БЕГЕМОТ", icon: "🦛" },
+            { en: "KOALA", ua: "КОАЛА", icon: "🐨" },
+            { en: "KANGAROO", ua: "КЕНГУРУ", icon: "🦘" },
+            { en: "KING", ua: "КОРОЛЬ", icon: "👑" },
+            { en: "KITE", ua: "ПОВІТРЯНИЙ ЗМІЙ", icon: "🪁" },
+            { en: "IGUANA", ua: "ІГУАНА", icon: "🦎" },
+            { en: "IGLOO", ua: "ІГЛУ", icon: "🧊" },
+            { en: "INSECT", ua: "КОМАХА", icon: "🪲" },
+            { en: "INK", ua: "ЧОРНИЛО", icon: "🖋️" },
+            { en: "JET", ua: "ШВИДКИЙ ЛІТАК", icon: "🛩️" },
+            { en: "JUMP", ua: "СТРИБАТИ", icon: "🤸" },
+            { en: "JEEP", ua: "ДЖИП", icon: "🚙" },
+            { en: "JELLYFISH", ua: "МЕДУЗА", icon: "🪼" },
+            { en: "JAM", ua: "ВАРЕННЯ", icon: "🍯" },
+            { en: "MILK", ua: "МОЛОКО", icon: "🥛" },
+            { en: "MOUSE", ua: "МИША", icon: "🐁" },
+            { en: "MONKEY", ua: "МАВПА", icon: "🐒" },
+            { en: "MOON", ua: "МІСЯЦЬ", icon: "🌙" },
+            { en: "MOTHER", ua: "МАМА", icon: "👩‍👧" },
+            { en: "MUSHROOM", ua: "ГРИБИ", icon: "🍄" },
+            { en: "MELON", ua: "ДИНЯ", icon: "🍈" },
+            { en: "PIZZA", ua: "ПІЦА", icon: "🍕" },
+            { en: "HOT DOG", ua: "ХОТ-ДОГ", icon: "🌭" },
+            { en: "PUDDING", ua: "ПУДИНГ", icon: "🍮" },
+            { en: "JUICE", ua: "СІК", icon: "🧃" },
+            { en: "MAP", ua: "КАРТА", icon: "🗺️" },
+            { en: "MITTEN", ua: "РУКАВИЧКА", icon: "🧤" },
+            { en: "BREAD", ua: "ХЛІБ", icon: "🍞" },
+            { en: "BANANA", ua: "БАНАН", icon: "🍌" },
+            { en: "CHEESE", ua: "СИР", icon: "🧀" },
+            { en: "SANDWICH", ua: "БУТЕРБРОД", icon: "🥪" },
+            { en: "BUTTER", ua: "МАСЛО", icon: "🧈" },
+            { en: "TOAST", ua: "ТОСТ", icon: "🧇" }, 
+            { en: "NINE", ua: "ДЕВʼЯТЬ", icon: "9️⃣" },
+            { en: "NEST", ua: "ГНІЗДО", icon: "🪹" },
+            { en: "NET", ua: "САЧОК", icon: "🥅" },
+            { en: "NUT", ua: "ГОРІХ", icon: "🥜" },
+            { en: "PIG", ua: "СВИНЯ", icon: "🐷" },
+            { en: "PIANO", ua: "ПІАНІНО", icon: "🎹" },
+            { en: "PUPPY", ua: "ЦУЦЕНЯ", icon: "🐶" }
+        ];
+
+        let currentWordIndex = -1;
+        let isWaiting = false;
+
+        function startGame() {
+            document.getElementById('start-screen').style.display = 'none';
+            document.getElementById('game-area').style.display = 'block';
+            nextRound();
+        }
+
+        function speak(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US'; 
+            utterance.rate = 0.6; 
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function speakCurrentWord() {
+            if (currentWordIndex !== -1) {
+                speak(dictionary[currentWordIndex].en);
+            }
+        }
+
+        function nextRound() {
+            isWaiting = false;
+            document.getElementById('message').textContent = "";
+            document.getElementById('message').style.color = "#333";
+            
+            currentWordIndex = Math.floor(Math.random() * dictionary.length);
+            const correctWord = dictionary[currentWordIndex];
+
+            let options = [correctWord];
+            while (options.length < 4) {
+                const randomItem = dictionary[Math.floor(Math.random() * dictionary.length)];
+                if (!options.includes(randomItem)) {
+                    options.push(randomItem);
+                }
+            }
+
+            options.sort(() => Math.random() - 0.5);
+
+            const grid = document.getElementById('cards-grid');
+            grid.innerHTML = "";
+            
+            options.forEach(option => {
+                const btn = document.createElement('button');
+                btn.className = 'card';
+                btn.textContent = option.icon;
+                btn.onclick = () => checkAnswer(option, btn);
+                grid.appendChild(btn);
+            });
+
+            setTimeout(speakCurrentWord, 500);
+        }
+
+        function checkAnswer(selectedOption, buttonElement) {
+            if (isWaiting) return; 
+
+            const correctWord = dictionary[currentWordIndex];
+            const messageEl = document.getElementById('message');
+
+            if (selectedOption.en === correctWord.en) {
+                buttonElement.classList.add('correct');
+                messageEl.textContent = `Правильно! Це ${correctWord.ua} (${correctWord.en})`;
+                messageEl.style.color = "#4caf50";
+                isWaiting = true;
+                
+                setTimeout(nextRound, 2500);
+            } else {
+                buttonElement.classList.add('wrong');
+                messageEl.textContent = "Спробуй ще раз! 😉";
+                messageEl.style.color = "#f44336";
+                
+                setTimeout(() => {
+                    buttonElement.classList.remove('wrong');
+                }, 500);
+            }
+        }
+    </script>
+</body>
+</html>
